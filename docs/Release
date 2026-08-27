@@ -1,0 +1,14 @@
+Origin: jailbrek
+Label: Martin's Tweaks
+Suite: stable
+Version: 1.0
+Codename: ios
+Architectures: iphoneos-arm64
+Components: main
+Description: Tweaks for iOS 17
+MD5Sum:
+ 1894b8f101824cd91ec6058aca20b7c7 941 Packages
+ ec3e49e3926cf0ca02fd97503a148200 589 Packages.gz
+SHA256:
+ e18f2a82ebad5ec918d711c1d44af14b68cc8df4a097f60fb761f202a02c49e4 941 Packages
+ 9a27415b4f40b85ddd16417b73cea69c51bf6642bf5722bca1f7ee82aff958ca 589 Packages.gz

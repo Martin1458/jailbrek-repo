@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Martin&#x27;s Tweaks</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73;
+    --card: #f5f5f7; --line: #d2d2d7; --accent: #0071e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d1d1f; --fg: #f5f5f7; --muted: #a1a1a6;
+      --card: #2c2c2e; --line: #3a3a3c; --accent: #2997ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 3rem 1.25rem 5rem;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+  }
+  main { max-width: 40rem; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 1rem; margin-bottom: .5rem; }
+  header img { width: 64px; height: 64px; border-radius: 14px; }
+  h1 { font-size: 1.75rem; margin: 0; letter-spacing: -.02em; }
+  .tagline { color: var(--muted); margin: .15rem 0 0; }
+  h2 { font-size: 1.05rem; margin: 2.5rem 0 .75rem; letter-spacing: -.01em; }
+  .url {
+    display: block; background: var(--card); border: 1px solid var(--line);
+    padding: .85rem 1rem; border-radius: 10px; word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem;
+  }
+  ol { padding-left: 1.25rem; }
+  ol li { margin: .3rem 0; }
+  .tweak {
+    display: flex; gap: 1rem; background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem; margin-bottom: 1rem;
+  }
+  .icon { width: 60px; height: 60px; border-radius: 13px; flex-shrink: 0; }
+  .placeholder { background: var(--line); }
+  .meta { min-width: 0; }
+  .meta h3 { margin: 0 0 .2rem; font-size: 1.05rem; }
+  .version { color: var(--muted); font-weight: 400; font-size: .85rem; }
+  .summary { margin: 0 0 .5rem; }
+  .meta p { margin: 0 0 .5rem; }
+  .meta p:not(.summary):not(.dl) { color: var(--muted); font-size: .92rem; }
+  .dl a { color: var(--accent); text-decoration: none; font-size: .92rem; }
+  .dl a:hover { text-decoration: underline; }
+  footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: .85rem;
+  }
+</style>
+<main>
+  <header>
+    <img src="CydiaIcon.png" alt="">
+    <div>
+      <h1>Martin&#x27;s Tweaks</h1>
+      <p class="tagline">Tweaks for iOS 17</p>
+    </div>
+  </header>
+
+  <h2>Add this repo</h2>
+  <code class="url">https://martin1458.github.io/jailbrek-repo/</code>
+  <ol>
+    <li>Open Sileo (or Zebra, or Cydia) and go to <strong>Sources</strong>.</li>
+    <li>Tap <strong>+</strong> and paste the address above.</li>
+    <li>Find the tweak below and install it.</li>
+  </ol>
+  <p>Everything here needs a <strong>rootless</strong> jailbreak on iOS 15 or
+     later. Built and tested on iOS 17.0.2 with Dopamine.</p>
+
+  <h2>Tweaks</h2>
+    <article class="tweak">
+      <img class="icon" src="icons/twoFCrop.png" alt="">
+      <div class="meta">
+        <h3>twoFCrop <span class="version">1.0.0</span></h3>
+        <p class="summary">Drag two crop handles at once</p>
+        <p>iOS lets you move one crop handle at a time. twoFCrop lets you drag two, so you
+can frame a crop in a single gesture instead of nudging each side in turn.</p><p>Works in the Photos editor and in the editor that opens when you tap the
+thumbnail after taking a screenshot. Any two handles can be used together:
+opposite corners, adjacent corners, opposite edges, or an edge and a corner.</p>
+        <p class="dl"><a href="debs/com.martintrasak.twofcrop_1.0.0_iphoneos-arm64.deb">Download .deb</a></p>
+      </div>
+    </article>
+
+  <footer>
+    Respring after installing if a tweak does not take effect.
+    Packages are unsigned; your package manager may warn about that.
+  </footer>
+</main>
+</html>
