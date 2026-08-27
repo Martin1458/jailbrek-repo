@@ -21,3 +21,27 @@ Size: 9444
 MD5sum: 1f30489a821f1e66bf54460a2db89425
 SHA1: a8c463934bba9baa2a8bdbd5f508d46ee41d310c
 SHA256: f750d38db429096aa36041ca04dbb6125d926005f0f30097767c8739f06f7dee
+
+Package: com.martintrasak.twofcrop
+Name: twoFCrop
+Description: Drag two crop handles at once
+ iOS lets you move one crop handle at a time. twoFCrop lets you drag two, so you
+ can frame a crop in a single gesture instead of nudging each side in turn.
+ .
+ Works in the Photos editor and in the editor that opens when you tap the
+ thumbnail after taking a screenshot. Any two handles can be used together:
+ opposite corners, adjacent corners, opposite edges, or an edge and a corner.
+Maintainer: martin
+Author: martin
+Section: Tweaks
+Depends: ellekit, preferenceloader
+Icon: https://martin1458.github.io/jailbrek-repo/icons/twoFCrop.png
+Tag: compatible::ios17
+Architecture: iphoneos-arm64
+Version: 1.1.0
+Installed-Size: 360
+Filename: debs/com.martintrasak.twofcrop_1.1.0_iphoneos-arm64.deb
+Size: 17946
+MD5sum: bd07237834c294f464bdebb92657741c
+SHA1: 983e78c1b8f38c28a97f4a46a76e2c809d8e8bfb
+SHA256: 38fbc735a1405e49012cfb7e7e2136c6fb61a88de017f95f19c596482453f14a
