@@ -19,6 +19,7 @@ import hashlib
 import html
 import io
 import re
+import pathlib
 import subprocess
 import sys
 import tarfile
@@ -100,119 +101,209 @@ def split_description(desc: str):
     return summary, "\n".join(body).strip()
 
 
-def render_page(latest: list) -> str:
-    cards = []
-    for fields, deb in latest:
-        name = html.escape(fields.get("Name", fields["Package"]))
-        version = html.escape(fields.get("Version", ""))
-        summary, body = split_description(fields.get("Description", ""))
-        icon = fields.get("Icon", "")
-        # Icon: is an absolute URL for package managers, but the page sits at
-        # that same origin, so relative works locally too (e.g. file:// preview).
-        if icon.startswith(REPO_URL):
-            icon = icon[len(REPO_URL):]
-        icon_html = (
-            f'<img class="icon" src="{html.escape(icon)}" alt="">'
-            if icon
-            else '<div class="icon placeholder"></div>'
-        )
-        paras = "".join(
-            f"<p>{html.escape(p)}</p>" for p in body.split("\n\n") if p.strip()
-        )
-        cards.append(f"""    <article class="tweak">
-      {icon_html}
-      <div class="meta">
-        <h3>{name} <span class="version">{version}</span></h3>
-        <p class="summary">{html.escape(summary)}</p>
-        {paras}
-        <p class="dl"><a href="debs/{html.escape(deb.name)}">Download .deb</a></p>
-      </div>
-    </article>""")
-
-    return f"""<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(LABEL)}</title>
+HEAD = """<title>{{LABEL}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=JetBrains+Mono:wght@400;700&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
-  :root {{
-    --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73;
-    --card: #f5f5f7; --line: #d2d2d7; --accent: #0071e3;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{
-      --bg: #1d1d1f; --fg: #f5f5f7; --muted: #a1a1a6;
-      --card: #2c2c2e; --line: #3a3a3c; --accent: #2997ff;
-    }}
-  }}
-  * {{ box-sizing: border-box; }}
-  body {{
-    margin: 0; padding: 3rem 1.25rem 5rem;
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background: var(--bg); color: var(--fg);
-  }}
-  main {{ max-width: 40rem; margin: 0 auto; }}
-  header {{ display: flex; align-items: center; gap: 1rem; margin-bottom: .5rem; }}
-  header img {{ width: 64px; height: 64px; border-radius: 14px; }}
-  h1 {{ font-size: 1.75rem; margin: 0; letter-spacing: -.02em; }}
-  .tagline {{ color: var(--muted); margin: .15rem 0 0; }}
-  h2 {{ font-size: 1.05rem; margin: 2.5rem 0 .75rem; letter-spacing: -.01em; }}
-  .url {{
-    display: block; background: var(--card); border: 1px solid var(--line);
-    padding: .85rem 1rem; border-radius: 10px; word-break: break-all;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem;
-  }}
-  ol {{ padding-left: 1.25rem; }}
-  ol li {{ margin: .3rem 0; }}
-  .tweak {{
-    display: flex; gap: 1rem; background: var(--card);
-    border: 1px solid var(--line); border-radius: 12px;
-    padding: 1rem; margin-bottom: 1rem;
-  }}
-  .icon {{ width: 60px; height: 60px; border-radius: 13px; flex-shrink: 0; }}
-  .placeholder {{ background: var(--line); }}
-  .meta {{ min-width: 0; }}
-  .meta h3 {{ margin: 0 0 .2rem; font-size: 1.05rem; }}
-  .version {{ color: var(--muted); font-weight: 400; font-size: .85rem; }}
-  .summary {{ margin: 0 0 .5rem; }}
-  .meta p {{ margin: 0 0 .5rem; }}
-  .meta p:not(.summary):not(.dl) {{ color: var(--muted); font-size: .92rem; }}
-  .dl a {{ color: var(--accent); text-decoration: none; font-size: .92rem; }}
-  .dl a:hover {{ text-decoration: underline; }}
-  footer {{
-    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--line);
-    color: var(--muted); font-size: .85rem;
-  }}
-</style>
-<main>
-  <header>
+  /* Neutrals carry a violet bias taken from the repo mark, so greys read as
+     chosen rather than defaulted. Light palette lives on bare :root; the dark
+     blocks only redefine tokens, never component colours. */
+  :root {
+    --paper: #FCFBFD;  --ink: #17151F;   --surface: #F3F1F7;
+    --line: #E2DEEC;   --muted: #6B6579; --accent: #5B4BE0;
+    --accent-ink: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #131017;  --ink: #ECEAF2;   --surface: #1D1A25;
+      --line: #2E2A3A;   --muted: #9A93AC; --accent: #9B8CFF;
+      --accent-ink: #131017;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #131017;  --ink: #ECEAF2;   --surface: #1D1A25;
+    --line: #2E2A3A;   --muted: #9A93AC; --accent: #9B8CFF;
+    --accent-ink: #131017;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: clamp(2rem, 7vw, 4.5rem) 1.25rem 4rem;
+    background: var(--paper); color: var(--ink);
+    font: 400 16px/1.65 "Public Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 40rem; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
+
+  .masthead { display: flex; align-items: center; gap: 1rem; }
+  .masthead img { width: 60px; height: 60px; border-radius: 14px; flex-shrink: 0; }
+  .wordmark {
+    font-family: Chivo, sans-serif; font-weight: 900;
+    font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.05;
+    letter-spacing: -.035em; margin: 0; text-wrap: balance;
+  }
+  .tagline { color: var(--muted); margin: .2rem 0 0; font-size: .95rem; }
+
+  section { display: flex; flex-direction: column; gap: 1rem; }
+  h2 {
+    font-family: Chivo, sans-serif; font-weight: 700; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+    margin: 0; padding-bottom: .6rem; border-bottom: 1px solid var(--line);
+  }
+
+  /* The URL is the one thing every visitor came for, so it gets the weight. */
+  .source { display: flex; gap: .5rem; align-items: stretch; flex-wrap: wrap; }
+  .source code {
+    flex: 1 1 16rem; min-width: 0;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: .88rem; line-height: 1.5; word-break: break-all;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: .8rem .9rem;
+  }
+  .copy {
+    flex: 0 0 auto; font: 600 .88rem/1 "Public Sans", sans-serif;
+    background: var(--accent); color: var(--accent-ink); border: 0;
+    border-radius: 10px; padding: 0 1.15rem; cursor: pointer;
+    transition: opacity .15s ease;
+  }
+  .copy:hover { opacity: .85; }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  ol { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem; }
+  ol::marker, li::marker { color: var(--muted); }
+  .note { color: var(--muted); font-size: .92rem; margin: 0; }
+
+  /* Rows, not cards: this page is a package index and should read like one. */
+  .tweak {
+    display: grid; grid-template-columns: 56px 1fr; gap: 1rem;
+    padding: 1.15rem 0; border-bottom: 1px solid var(--line);
+  }
+  .tweak:first-of-type { border-top: 1px solid var(--line); }
+  .tweak img, .tweak .noicon { width: 56px; height: 56px; border-radius: 13px; }
+  .tweak .noicon { background: var(--surface); border: 1px solid var(--line); }
+  .tweak .body { min-width: 0; display: flex; flex-direction: column; gap: .45rem; }
+  .tweak h3 {
+    font-family: Chivo, sans-serif; font-weight: 700; font-size: 1.08rem;
+    letter-spacing: -.015em; margin: 0;
+  }
+  .tweak .summary { margin: 0; }
+  .tweak .long { margin: 0; color: var(--muted); font-size: .93rem; }
+  .facts {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: .76rem; color: var(--muted); font-variant-numeric: tabular-nums;
+    display: flex; flex-wrap: wrap; gap: .5rem; margin: .1rem 0 0;
+  }
+  .facts span::after { content: " ·"; opacity: .5; }
+  .facts span:last-child::after { content: ""; }
+  .tweak a { color: var(--accent); font-weight: 500; font-size: .93rem; text-decoration: none; }
+  .tweak a:hover { text-decoration: underline; }
+
+  footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  footer p { margin: 0 0 .4rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>"""
+
+BODY = """<main>
+  <header class="masthead">
     <img src="CydiaIcon.png" alt="">
     <div>
-      <h1>{html.escape(LABEL)}</h1>
-      <p class="tagline">{html.escape(DESCRIPTION)}</p>
+      <h1 class="wordmark">{{LABEL}}</h1>
+      <p class="tagline">{{DESCRIPTION}}</p>
     </div>
   </header>
 
-  <h2>Add this repo</h2>
-  <code class="url">{html.escape(REPO_URL)}</code>
-  <ol>
-    <li>Open Sileo (or Zebra, or Cydia) and go to <strong>Sources</strong>.</li>
-    <li>Tap <strong>+</strong> and paste the address above.</li>
-    <li>Find the tweak below and install it.</li>
-  </ol>
-  <p>Everything here needs a <strong>rootless</strong> jailbreak on iOS 15 or
-     later. Built and tested on iOS 17.0.2 with Dopamine.</p>
+  <section>
+    <h2>Add this source</h2>
+    <div class="source">
+      <code id="repo-url">{{REPO_URL}}</code>
+      <button class="copy" id="copy">Copy</button>
+    </div>
+    <ol>
+      <li>Open Sileo, Zebra, or Cydia and go to <strong>Sources</strong>.</li>
+      <li>Tap <strong>+</strong> and paste the address.</li>
+      <li>Install anything below.</li>
+    </ol>
+    <p class="note">Needs a rootless jailbreak on iOS 15 or later.
+       Built and tested on iOS 17.0.2 with Dopamine.</p>
+  </section>
 
-  <h2>Tweaks</h2>
-{chr(10).join(cards) if cards else "  <p>Nothing published yet.</p>"}
+  <section>
+    <h2>{{COUNT_LABEL}}</h2>
+{{CARDS}}
+  </section>
 
   <footer>
-    Respring after installing if a tweak does not take effect.
-    Packages are unsigned; your package manager may warn about that.
+    <p>Packages are unsigned, so your package manager may warn you before installing.</p>
+    <p>If a tweak does not take effect, respring.</p>
   </footer>
 </main>
-</html>
-"""
+<script>
+  document.getElementById("copy").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(document.getElementById("repo-url").textContent.trim());
+      btn.textContent = "Copied";
+    } catch {
+      btn.textContent = "Select it";
+    }
+    setTimeout(() => { btn.textContent = "Copy"; }, 1800);
+  });
+</script>"""
+
+
+def human_size(n: int) -> str:
+    return f"{n / 1024:.0f} KB" if n < 1024 * 1024 else f"{n / 1048576:.1f} MB"
+
+
+def render_cards(latest: list) -> str:
+    cards = []
+    for fields, deb in latest:
+        summary, body = split_description(fields.get("Description", ""))
+        icon = fields.get("Icon", "")
+        # Icon: is an absolute URL for package managers, but the page sits at that
+        # same origin, so a relative path also works in a local preview.
+        if icon.startswith(REPO_URL):
+            icon = icon[len(REPO_URL):]
+        icon_html = (f'<img src="{html.escape(icon)}" alt="">' if icon
+                     else '<div class="noicon"></div>')
+        paras = "".join(f'<p class="long">{html.escape(p)}</p>'
+                        for p in body.split("\n\n") if p.strip())
+        facts = " ".join(f"<span>{html.escape(v)}</span>" for v in [
+            fields["Package"],
+            human_size(deb.stat().st_size),
+            fields.get("Architecture", ""),
+        ] if v)
+        cards.append(f"""    <article class="tweak">
+      {icon_html}
+      <div class="body">
+        <h3>{html.escape(fields.get("Name", fields["Package"]))} {html.escape(fields.get("Version", ""))}</h3>
+        <p class="summary">{html.escape(summary)}</p>
+        {paras}
+        <p class="facts">{facts}</p>
+        <p><a href="debs/{html.escape(deb.name)}">Download .deb</a></p>
+      </div>
+    </article>""")
+    return "\n".join(cards) if cards else "    <p class=\"note\">Nothing published yet.</p>"
+
+
+def render(latest: list):
+    """Returns (head, body). The head carries <title> and styles; the body is the
+    page content. Kept separate so the same markup can be emitted either as a
+    standalone document or as a fragment for previewing."""
+    count = len(latest)
+    subs = {
+        "{{LABEL}}": html.escape(LABEL),
+        "{{DESCRIPTION}}": html.escape(DESCRIPTION),
+        "{{REPO_URL}}": html.escape(REPO_URL),
+        "{{COUNT_LABEL}}": f"{count} tweak" + ("" if count == 1 else "s"),
+        "{{CARDS}}": render_cards(latest),
+    }
+    head, body = HEAD, BODY
+    for k, v in subs.items():
+        head = head.replace(k, v)
+        body = body.replace(k, v)
+    return head, body
 
 
 def main():
@@ -269,7 +360,19 @@ def main():
     )
 
     latest = [by_package[p] for p in sorted(by_package)]
-    (DOCS / "index.html").write_text(render_page(latest))
+    head, body = render(latest)
+    (DOCS / "index.html").write_text(
+        '<!doctype html>\n<html lang="en">\n<head>\n'
+        '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+        + head + "\n</head>\n<body>\n" + body + "\n</body>\n</html>\n"
+    )
+
+    # Artifact previews are published as a fragment: the host supplies the
+    # document wrapper, so emitting our own would nest one page inside another.
+    if len(sys.argv) > 2 and sys.argv[1] == "--preview":
+        pathlib.Path(sys.argv[2]).write_text(head + "\n" + body + "\n")
+        print(f"preview -> {sys.argv[2]}")
 
     print(f"\n{len(debs)} deb(s), {len(latest)} package(s) -> docs/")
     print("Packages, Packages.gz, Release, index.html")
