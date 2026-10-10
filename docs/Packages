@@ -1,3 +1,32 @@
+Package: com.martintrasak.fastmessaging
+Name: fastMessaging
+Description: Hold the right side of a DM to speed up the typing indicator
+ Instagram plays a reel at 2x while you hold the right side of the screen.
+ fastMessaging brings the same gesture to Direct: when the other person is
+ typing, press and hold the right side of the thread and the three dots run
+ faster for as long as you hold.
+ .
+ It starts at 2x and doubles every 1.5 seconds you keep holding, up to 16x.
+ The speeds, the width of the strip and the hold delay are all in Settings.
+ .
+ The hold only engages while someone is actually typing, so Instagram's own
+ press and hold, the chat theme picker and message reactions, behaves exactly
+ as it always did the rest of the time.
+Maintainer: martin
+Author: martin
+Section: Tweaks
+Depends: ellekit, preferenceloader
+Icon: https://martin1458.github.io/jailbrek-repo/icons/fastMessaging.png
+Tag: compatible::ios17
+Architecture: iphoneos-arm64
+Version: 0.1.0
+Installed-Size: 364
+Filename: debs/com.martintrasak.fastmessaging_0.1.0_iphoneos-arm64.deb
+Size: 20374
+MD5sum: c0c11d1cc1fa59969af34acac5143fc0
+SHA1: 6f89a9b83aae34470aa9087cd13030f77d4afb91
+SHA256: 5fa737242a0b3b02bf48d3680f048c97b4cc0c058263eb811690d9d25d46e8a0
+
 Package: com.martintrasak.twofcrop
 Name: twoFCrop
 Description: Drag two crop handles at once
